@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { VibeProvider, useVibe } from '@/contexts/VibeContext';
 import VibeCard from '@/components/VibeCard';
 import { DatePicker } from '@/components/DatePicker';
@@ -15,19 +15,7 @@ const VibeTimerApp = () => {
     addVibe,
     selectedDate,
     setSelectedDate,
-    refreshTimers
   } = useVibe();
-
-  // Refresh timers when component mounts and periodically thereafter
-  useEffect(() => {
-    refreshTimers();
-    
-    const interval = setInterval(() => {
-      refreshTimers();
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [refreshTimers]);
 
   return (
     <div className="container py-8 mx-auto">

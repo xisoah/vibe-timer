@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
@@ -14,6 +14,24 @@ interface VibeCardProps {
 }
 
 const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
+  // Local state to force re-renders for timer display
+  const [, setForceUpdate] = useState(0);
+  
+  // Set up interval for updating the timer display
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    
+    if (vibe.isRunning && vibe.startTime) {
+      intervalId = setInterval(() => {
+        setForceUpdate(prev => prev + 1);
+      }, 1000);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [vibe.isRunning, vibe.startTime]);
+
   // Calculate the current display time (total + session if running)
   const displayTime = useMemo(() => {
     let time = vibe.totalTime;
@@ -24,7 +42,7 @@ const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
     }
     
     return formatTime(time);
-  }, [vibe]);
+  }, [vibe.totalTime, vibe.isRunning, vibe.startTime]);
 
   // Calculate the session time if running
   const sessionTime = useMemo(() => {
@@ -33,7 +51,7 @@ const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
       return formatTime(sessionTime);
     }
     return '00:00:00';
-  }, [vibe]);
+  }, [vibe.isRunning, vibe.startTime]);
 
   // Handle start/stop button click
   const handleTimerToggle = () => {

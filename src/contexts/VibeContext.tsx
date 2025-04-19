@@ -1,10 +1,10 @@
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/components/ui/use-toast";
 import { Vibe, DailyVibeData } from '@/types';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { formatDateToString, calculateElapsedTime, formatTime } from '@/utils/timeUtils';
+import { formatDateToString, calculateElapsedTime } from '@/utils/timeUtils';
 
 // Default vibes that will be loaded on first use
 const DEFAULT_VIBES = [
@@ -73,25 +73,15 @@ export const VibeProvider: React.FC<VibeProviderProps> = ({ children }) => {
         vibes: newVibes
       };
       
-      setDailyVibeData([...dailyVibeData, newDailyData]);
+      setDailyVibeData(prevData => [...prevData, newDailyData]);
       return newVibes;
     }
-  }, [selectedDate, dailyVibeData, availableVibes, refreshCounter]);
+  }, [selectedDate, dailyVibeData, availableVibes]);
 
-  // Force refresh timers every second for running timers
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (runningVibe) {
-      interval = setInterval(() => {
-        setRefreshCounter(prev => prev + 1);
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [runningVibe]);
+  // Force refresh of all timers (used for updating UI)
+  const refreshTimers = useCallback(() => {
+    setRefreshCounter(prev => prev + 1);
+  }, []);
 
   // Check on load if any timer was running and restore it
   useEffect(() => {
@@ -106,10 +96,10 @@ export const VibeProvider: React.FC<VibeProviderProps> = ({ children }) => {
         setRunningVibe(runningVibeFromData);
       }
     }
-  }, []);
+  }, [selectedDate, dailyVibeData]);
 
   // Add a new vibe
-  const addVibe = (name: string) => {
+  const addVibe = useCallback((name: string) => {
     // Check if the name already exists (case insensitive)
     const nameExists = availableVibes.some(
       vibe => vibe.name.toLowerCase() === name.toLowerCase()
@@ -134,91 +124,99 @@ export const VibeProvider: React.FC<VibeProviderProps> = ({ children }) => {
     };
     
     // Add to available vibes
-    setAvailableVibes([...availableVibes, newVibe]);
+    setAvailableVibes(prevVibes => [...prevVibes, newVibe]);
     
     // Add to the current day's vibes
     const formattedDate = formatDateToString(selectedDate);
-    const updatedDailyData = [...dailyVibeData];
-    const dayIndex = updatedDailyData.findIndex(data => data.date === formattedDate);
-    
-    if (dayIndex >= 0) {
-      updatedDailyData[dayIndex].vibes.push({ ...newVibe });
-      setDailyVibeData(updatedDailyData);
-    }
+    setDailyVibeData(prevData => {
+      const updatedData = [...prevData];
+      const dayIndex = updatedData.findIndex(data => data.date === formattedDate);
+      
+      if (dayIndex >= 0) {
+        updatedData[dayIndex].vibes.push({ ...newVibe });
+      }
+      
+      return updatedData;
+    });
     
     toast({
       title: "Vibe added",
       description: `New vibe "${name}" has been added.`
     });
-  };
+  }, [availableVibes, selectedDate, toast, setAvailableVibes, setDailyVibeData]);
 
   // Start a timer for a specific vibe
-  const startTimer = (vibeId: string) => {
+  const startTimer = useCallback((vibeId: string) => {
     const formattedDate = formatDateToString(selectedDate);
-    const updatedDailyData = [...dailyVibeData];
-    const dayIndex = updatedDailyData.findIndex(data => data.date === formattedDate);
     
-    if (dayIndex >= 0) {
-      // Stop any currently running timer first
-      if (runningVibe) {
-        const runningVibeIndex = updatedDailyData[dayIndex].vibes.findIndex(
-          vibe => vibe.id === runningVibe.id
-        );
-        
-        if (runningVibeIndex >= 0 && updatedDailyData[dayIndex].vibes[runningVibeIndex].isRunning) {
-          const elapsedTime = calculateElapsedTime(
-            updatedDailyData[dayIndex].vibes[runningVibeIndex].startTime || 0
+    setDailyVibeData(prevData => {
+      const updatedData = [...prevData];
+      const dayIndex = updatedData.findIndex(data => data.date === formattedDate);
+      
+      if (dayIndex >= 0) {
+        // Stop any currently running timer first
+        if (runningVibe) {
+          const runningVibeIndex = updatedData[dayIndex].vibes.findIndex(
+            vibe => vibe.id === runningVibe.id
           );
           
-          updatedDailyData[dayIndex].vibes[runningVibeIndex].totalTime += elapsedTime;
-          updatedDailyData[dayIndex].vibes[runningVibeIndex].sessionTime = 0;
-          updatedDailyData[dayIndex].vibes[runningVibeIndex].isRunning = false;
-          updatedDailyData[dayIndex].vibes[runningVibeIndex].startTime = null;
+          if (runningVibeIndex >= 0 && updatedData[dayIndex].vibes[runningVibeIndex].isRunning) {
+            const elapsedTime = calculateElapsedTime(
+              updatedData[dayIndex].vibes[runningVibeIndex].startTime || 0
+            );
+            
+            updatedData[dayIndex].vibes[runningVibeIndex].totalTime += elapsedTime;
+            updatedData[dayIndex].vibes[runningVibeIndex].sessionTime = 0;
+            updatedData[dayIndex].vibes[runningVibeIndex].isRunning = false;
+            updatedData[dayIndex].vibes[runningVibeIndex].startTime = null;
+          }
+        }
+        
+        // Start the new timer
+        const vibeIndex = updatedData[dayIndex].vibes.findIndex(vibe => vibe.id === vibeId);
+        
+        if (vibeIndex >= 0) {
+          updatedData[dayIndex].vibes[vibeIndex].isRunning = true;
+          updatedData[dayIndex].vibes[vibeIndex].startTime = Date.now();
+          
+          // Update running vibe reference
+          setRunningVibe(updatedData[dayIndex].vibes[vibeIndex]);
         }
       }
       
-      // Start the new timer
-      const vibeIndex = updatedDailyData[dayIndex].vibes.findIndex(vibe => vibe.id === vibeId);
-      
-      if (vibeIndex >= 0) {
-        updatedDailyData[dayIndex].vibes[vibeIndex].isRunning = true;
-        updatedDailyData[dayIndex].vibes[vibeIndex].startTime = Date.now();
-        setRunningVibe(updatedDailyData[dayIndex].vibes[vibeIndex]);
-      }
-      
-      setDailyVibeData(updatedDailyData);
-    }
-  };
+      return updatedData;
+    });
+  }, [selectedDate, runningVibe, setDailyVibeData]);
 
   // Stop a timer for a specific vibe
-  const stopTimer = (vibeId: string) => {
+  const stopTimer = useCallback((vibeId: string) => {
     const formattedDate = formatDateToString(selectedDate);
-    const updatedDailyData = [...dailyVibeData];
-    const dayIndex = updatedDailyData.findIndex(data => data.date === formattedDate);
     
-    if (dayIndex >= 0) {
-      const vibeIndex = updatedDailyData[dayIndex].vibes.findIndex(vibe => vibe.id === vibeId);
+    setDailyVibeData(prevData => {
+      const updatedData = [...prevData];
+      const dayIndex = updatedData.findIndex(data => data.date === formattedDate);
       
-      if (vibeIndex >= 0 && updatedDailyData[dayIndex].vibes[vibeIndex].isRunning) {
-        const elapsedTime = calculateElapsedTime(
-          updatedDailyData[dayIndex].vibes[vibeIndex].startTime || 0
-        );
+      if (dayIndex >= 0) {
+        const vibeIndex = updatedData[dayIndex].vibes.findIndex(vibe => vibe.id === vibeId);
         
-        updatedDailyData[dayIndex].vibes[vibeIndex].totalTime += elapsedTime;
-        updatedDailyData[dayIndex].vibes[vibeIndex].sessionTime = 0;
-        updatedDailyData[dayIndex].vibes[vibeIndex].isRunning = false;
-        updatedDailyData[dayIndex].vibes[vibeIndex].startTime = null;
-        
-        setRunningVibe(null);
-        setDailyVibeData(updatedDailyData);
+        if (vibeIndex >= 0 && updatedData[dayIndex].vibes[vibeIndex].isRunning) {
+          const elapsedTime = calculateElapsedTime(
+            updatedData[dayIndex].vibes[vibeIndex].startTime || 0
+          );
+          
+          updatedData[dayIndex].vibes[vibeIndex].totalTime += elapsedTime;
+          updatedData[dayIndex].vibes[vibeIndex].sessionTime = 0;
+          updatedData[dayIndex].vibes[vibeIndex].isRunning = false;
+          updatedData[dayIndex].vibes[vibeIndex].startTime = null;
+          
+          // Clear running vibe reference
+          setRunningVibe(null);
+        }
       }
-    }
-  };
-
-  // Force refresh of all timers (used for updating UI)
-  const refreshTimers = () => {
-    setRefreshCounter(prev => prev + 1);
-  };
+      
+      return updatedData;
+    });
+  }, [selectedDate, setDailyVibeData]);
 
   return (
     <VibeContext.Provider
