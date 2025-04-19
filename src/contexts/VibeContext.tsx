@@ -94,7 +94,11 @@ export const VibeProvider: React.FC<VibeProviderProps> = ({ children }) => {
       
       if (runningVibeFromData && runningVibeFromData.startTime) {
         setRunningVibe(runningVibeFromData);
+      } else {
+        setRunningVibe(null);
       }
+    } else {
+      setRunningVibe(null);
     }
   }, [selectedDate, dailyVibeData]);
 
@@ -180,7 +184,8 @@ export const VibeProvider: React.FC<VibeProviderProps> = ({ children }) => {
           updatedData[dayIndex].vibes[vibeIndex].startTime = Date.now();
           
           // Update running vibe reference
-          setRunningVibe(updatedData[dayIndex].vibes[vibeIndex]);
+          const newRunningVibe = { ...updatedData[dayIndex].vibes[vibeIndex] };
+          setRunningVibe(newRunningVibe);
         }
       }
       

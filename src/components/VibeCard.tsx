@@ -15,7 +15,7 @@ interface VibeCardProps {
 
 const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
   // Local state to force re-renders for timer display
-  const [, setForceUpdate] = useState(0);
+  const [tick, setTick] = useState(0);
   
   // Set up interval for updating the timer display
   useEffect(() => {
@@ -23,7 +23,7 @@ const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
     
     if (vibe.isRunning && vibe.startTime) {
       intervalId = setInterval(() => {
-        setForceUpdate(prev => prev + 1);
+        setTick(prev => prev + 1);
       }, 1000);
     }
     
@@ -42,7 +42,7 @@ const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
     }
     
     return formatTime(time);
-  }, [vibe.totalTime, vibe.isRunning, vibe.startTime]);
+  }, [vibe.totalTime, vibe.isRunning, vibe.startTime, tick]);
 
   // Calculate the session time if running
   const sessionTime = useMemo(() => {
@@ -51,7 +51,7 @@ const VibeCard: React.FC<VibeCardProps> = ({ vibe, onStart, onStop }) => {
       return formatTime(sessionTime);
     }
     return '00:00:00';
-  }, [vibe.isRunning, vibe.startTime]);
+  }, [vibe.isRunning, vibe.startTime, tick]);
 
   // Handle start/stop button click
   const handleTimerToggle = () => {
