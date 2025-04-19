@@ -25,10 +25,7 @@ const VibeTimerApp = () => {
       </header>
       
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="w-full sm:w-64">
-            <DatePicker date={selectedDate} onDateChange={setSelectedDate} />
-          </div>
+        <div className="flex justify-between items-center">
           <AddVibeDialog onAddVibe={addVibe} />
         </div>
         
@@ -44,7 +41,10 @@ const VibeTimerApp = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <DatePicker date={selectedDate} onDateChange={setSelectedDate} />
+            </div>
             <VibeDataTable vibes={selectedDateVibes} />
           </div>
           <div>
