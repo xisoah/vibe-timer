@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -22,6 +22,16 @@ type SortDirection = 'asc' | 'desc';
 
 const VibeDataTable: React.FC<VibeDataTableProps> = ({ vibes }) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [tick, setTick] = useState(0);
+
+  // Set up interval for updating running timers
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setTick(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Calculate total time across all vibes
   const totalTime = vibes.reduce((acc, vibe) => {
@@ -39,11 +49,6 @@ const VibeDataTable: React.FC<VibeDataTableProps> = ({ vibes }) => {
     
     return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
   });
-
-  // Toggle sort direction
-  const toggleSort = () => {
-    setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-  };
 
   // Filter out vibes with no time tracked
   const filteredVibes = sortedVibes.filter(vibe => {
@@ -75,13 +80,13 @@ const VibeDataTable: React.FC<VibeDataTableProps> = ({ vibes }) => {
       </TableHeader>
       <TableBody>
         {filteredVibes.map((vibe) => {
-          const displayTime = vibe.totalTime + (vibe.isRunning && vibe.startTime ? calculateElapsedTime(vibe.startTime) : 0);
+          const currentTime = vibe.totalTime + (vibe.isRunning && vibe.startTime ? calculateElapsedTime(vibe.startTime) : 0);
           
           return (
             <TableRow key={vibe.id}>
               <TableCell>{vibe.name}</TableCell>
               <TableCell className="font-mono">
-                {formatTime(displayTime)}
+                {formatTime(currentTime)}
               </TableCell>
             </TableRow>
           );
