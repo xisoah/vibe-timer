@@ -29,6 +29,16 @@ git clone <YOUR_GIT_URL>
 # Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
+## Setup
+
+1. Clone this repo
+2. Install dependencies
+3. Set up a Supabase project and create a `vibe_sessions` table matching the app's schema.
+4. Configure your Supabase URL and anon key in `src/lib/supabaseClient.ts`.
+5. **Important:** Enable Row Level Security (RLS) and add policies to allow read/write for development:
+   - Example policy for development: `using (true)` for insert, update, delete, and select.
+6. Run `npm run dev` to start the app development server with auto-reloading and an instant preview.
+
 # Step 3: Install the necessary dependencies.
 npm i
 
@@ -50,15 +60,26 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Features
+
+- Add, edit, and delete vibes (all actions synced with Supabase)
+- Start/stop/reset timers for each vibe (cloud-backed, real-time updates)
+- Daily tracking and statistics
+- Data table and pie chart
+- Responsive UI
+- Data persists in the cloud (Supabase), accessible from any device
+
 ## What technologies are used for this project?
 
 This project is built with:
 
 - Vite
-- TypeScript
-- React
+- React (TypeScript)
 - shadcn-ui
 - Tailwind CSS
+- recharts (charts)
+- React Context API (state)
+- Supabase (cloud database for all vibe/timer data; replaces local storage)
 
 ## How can I deploy this project?
 
